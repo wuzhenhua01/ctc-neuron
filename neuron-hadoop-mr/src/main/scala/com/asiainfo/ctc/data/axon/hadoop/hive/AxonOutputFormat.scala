@@ -9,13 +9,8 @@ import org.apache.hadoop.io.{Writable, WritableComparable}
 import org.apache.hadoop.util.Progressable
 
 class AxonOutputFormat extends HiveOutputFormat[WritableComparable[_], Writable] {
-  override def getHiveRecordWriter(jc: Nothing,
-                                   outPath: Path,
-                                   valueClass: Class[_ <: Writable],
-                                   isCompressed: Boolean,
-                                   tableProperties: Properties,
-                                   progress: Progressable) = {
-    var rowSeparator: Int = _
+  override def getHiveRecordWriter(jc: Nothing, outPath: Path, valueClass: Class[_ <: Writable], isCompressed: Boolean, tableProperties: Properties, progress: Progressable) = {
+    var rowSeparator: Int = 0
     val rowSeparatorString = tableProperties.getProperty(serdeConstants.LINE_DELIM, "\n")
 
     val fs = outPath.getFileSystem(jc)

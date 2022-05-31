@@ -5,13 +5,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.asiainfo.ctc.data</groupId>
-    <artifactId>ctc-axon</artifactId>
+    <artifactId>ctc-neuron</artifactId>
     <version>1.0.0</version>
     <packaging>pom</packaging>
 
     <modules>
-        <module>axon-hadoop-mr</module>
-        <module>axon-spark-datasource</module>
+        <module>neuron-hadoop-mr</module>
+        <module>neuron-spark-datasource</module>
     </modules>
 
     <properties>

@@ -5,8 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.asiainfo.ctc.data</groupId>
-        <artifactId>ctc-axon</artifactId>
+        <artifactId>ctc-neuron</artifactId>
         <version>1.0.0</version>
     </parent>
-    <artifactId>axon-spark-datasource</artifactId>
+    <artifactId>neuron-spark-datasource</artifactId>
 </project>
