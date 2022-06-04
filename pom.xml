@@ -10,6 +10,8 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>neuron-common</module>
+        <module>neuron-cli</module>
         <module>neuron-hadoop-mr</module>
         <module>neuron-spark-datasource</module>
     </modules>
@@ -29,6 +31,7 @@
 
         <!-- Library Dependency Versions -->
         <fasterxml.jackson.module.scala.version>2.6.7.1</fasterxml.jackson.module.scala.version>
+        <hadoop.version>3.0.0</hadoop.version>
         <hive.version>3.1.0</hive.version>
         <hive.exec.classifier>core</hive.exec.classifier>
         <log4j.version>1.2.17</log4j.version>
@@ -71,6 +74,23 @@
                 <version>${hive.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-client</artifactId>
+                <version>${hadoop.version}</version>
+                <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>javax.servlet</groupId>
+                        <artifactId>servlet-api</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>javax.xml.bind</groupId>
+                        <artifactId>jaxb-api</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+
             <!-- Spark -->
             <dependency>
                 <groupId>org.apache.spark</groupId>
@@ -81,18 +101,6 @@
             <dependency>
                 <groupId>org.apache.spark</groupId>
                 <artifactId>spark-sql_${scala.binary.version}</artifactId>
-                <version>${spark.version}</version>
-                <scope>${spark.scope}</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.spark</groupId>
-                <artifactId>spark-streaming_${scala.binary.version}</artifactId>
-                <version>${spark.version}</version>
-                <scope>${spark.scope}</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.spark</groupId>
-                <artifactId>spark-streaming-kafka-0-10_${scala.binary.version}</artifactId>
                 <version>${spark.version}</version>
                 <scope>${spark.scope}</scope>
             </dependency>
