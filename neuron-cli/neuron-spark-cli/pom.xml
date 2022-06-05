@@ -14,7 +14,18 @@
         <!-- Spark -->
         <dependency>
             <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_${scala.binary.version}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
             <artifactId>spark-sql_${scala.binary.version}</artifactId>
+        </dependency>
+
+        <!-- Neuron -->
+        <dependency>
+            <groupId>com.asiainfo.ctc.data</groupId>
+            <artifactId>neuron-common</artifactId>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 

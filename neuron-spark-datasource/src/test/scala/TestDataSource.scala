@@ -12,7 +12,7 @@ object TestDataSource {
     val conf = new SparkConf()
       .setMaster("local[4]")
       .setAppName("test")
-      .set("spark.sql.shuffle.partition", "1")
+      .set("spark.sql.shuffle.partition", "4")
 
     val ss = SparkSession.builder
       .config(conf)
@@ -23,10 +23,8 @@ object TestDataSource {
     val df = rdd.toDF("id", "name", "age")
     df.createTempView("user")
     ss.sql("select *from user")
-      .show()
-    ss.sql("select *from user")
       .toDF()
-      .coalesce(1)
+      // .coalesce(1)
       .write
       .format("neuron")
       .mode(SaveMode.Overwrite)

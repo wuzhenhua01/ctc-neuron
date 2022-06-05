@@ -1,5 +1,6 @@
 package com.asiainfo.ctc.data.neuron
 
+import com.asiainfo.ctc.data.neuron.model.NeuronRecord
 import org.apache.spark.sql.sources.{BaseRelation, CreatableRelationProvider, DataSourceRegister}
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
@@ -18,13 +19,15 @@ class DefaultSource extends CreatableRelationProvider with DataSourceRegister {
    * of creating and returning a parquet relation here.
    *
    * @param sqlContext Spark SQL Context
-   * @param mode Mode for saving the DataFrame at the destination
+   * @param mode       Mode for saving the DataFrame at the destination
    * @param parameters Parameters passed as part of the DataFrame write operation
-   * @param df Spark DataFrame to be written
+   * @param df         Spark DataFrame to be written
    * @return Spark Relation
    */
   override def createRelation(sqlContext: SQLContext, mode: SaveMode, parameters: Map[String, String], df: DataFrame): BaseRelation = {
-    NeuronSparkSqlWriter.write(sqlContext, mode, parameters, df)
-    new NeuronEmptyRelation(sqlContext, df.schema)
+    val dfWithoutMetaCols = df.drop(NeuronRecord.NEURON_META_COLUMNS: _*)
+
+    NeuronSparkSqlWriter.write(sqlContext, mode, parameters, dfWithoutMetaCols)
+    new NeuronEmptyRelation(sqlContext, dfWithoutMetaCols.schema)
   }
 }
