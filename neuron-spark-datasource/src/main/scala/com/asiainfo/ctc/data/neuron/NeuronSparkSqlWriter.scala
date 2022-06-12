@@ -5,14 +5,14 @@ import com.asiainfo.ctc.data.neuron.table.NeuronTableConfig
 import org.apache.commons.lang3.StringUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
-import org.apache.hadoop.io.compress.{CodecPool, CompressionCodec, CompressionCodecFactory, Compressor}
+import org.apache.hadoop.io.compress.{CompressionCodec, CompressionCodecFactory}
 import org.apache.log4j.LogManager
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode, SparkSession}
 
 import scala.collection.JavaConversions._
-import scala.collection.mutable.ArrayBuffer
-import scala.util.{Failure, Success, Try}
+import scala.collection.mutable.ListBuffer
+import scala.util.Try
 
 /**
  * @author wuzh8@asiainfo.com
@@ -27,37 +27,15 @@ object NeuronSparkSqlWriter {
     assert(optParams.get("path").exists(StringUtils.isNotBlank), "'path' must be set")
 
     val path = optParams("path")
-    val basePath = new Path(path)
-    val sparkContext = sqlContext.sparkContext
+    val sc = sqlContext.sparkContext
 
     val record: RDD[List[Any]] = NeuronSparkUtils.createRdd(df)
     val neuronAllIncomingRecords = record.map(r => DataSourceUtils.createNeuronRecord(r, "\t"))
 
 
-    val client = DataSourceUtils.createNeuronClient(sparkContext, path, "")
-    client.startCommit()
-    DataSourceUtils.doWriteOperation(client, neuronAllIncomingRecords)
-
-    neuronAllIncomingRecords.foreachPartition { recordItr =>
-      val fs = basePath.getFileSystem(new Configuration)
-      val codec: CompressionCodec = getCodec("gzip") match {
-        case Success(c) => c
-        case Failure(ex) => {
-          LOG.error("===")
-          sys.exit(-2)
-        }
-      }
-
-      val fsOut = fs.create(basePath)
-      val compressor: Compressor = CodecPool.getCompressor(codec, fs.getConf)
-      val cmpOut = codec.createOutputStream(fsOut, compressor)
-      recordItr.foreach { line =>
-        cmpOut.write(line.getBytes("GBK"))
-        cmpOut.write('\n')
-      }
-      CodecPool.returnCompressor(compressor)
-    }
-
+    val client = DataSourceUtils.createNeuronClient(sc, path, Map())
+    val instantTime = client.startCommit()
+    DataSourceUtils.doWriteOperation(client, neuronAllIncomingRecords, instantTime)
   }
 
   private def handleSaveModes(spark: SparkSession, mode: SaveMode, tablePath: Path, fs: FileSystem) {
@@ -86,7 +64,7 @@ object NeuronSparkSqlWriter {
     // Wish we could base this on DefaultCodec but appears not all codec's
     // extend DefaultCodec(Lzo)
     var codec: CompressionCodec = null
-    val codecStrs = ArrayBuffer("None")
+    val codecStrs = ListBuffer("None")
     for (cls <- codecs) {
       codecStrs += cls.getSimpleName
       if (codecMatches(cls, codecName))

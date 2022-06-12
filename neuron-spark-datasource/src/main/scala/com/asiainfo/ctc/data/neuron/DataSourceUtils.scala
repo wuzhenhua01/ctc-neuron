@@ -16,15 +16,15 @@ object DataSourceUtils {
     record.mkString(sepVal)
   }
 
-  def createNeuronClient(sc: SparkContext, bashPath: String, tblName: String): SparkRDDWriteClient = {
-    new SparkRDDWriteClient(new NeuronSparkEngineContext(sc))
+  def createNeuronClient(sc: SparkContext, bashPath: String, parameters: Map[String, String]): SparkRDDWriteClient = {
+    new SparkRDDWriteClient(new NeuronSparkEngineContext(sc), createNeuronConfig(bashPath, parameters))
   }
 
-  def doWriteOperation(client: SparkRDDWriteClient, neuronAllIncomingRecords: RDD[String]) = {
-
+  def doWriteOperation(client: SparkRDDWriteClient, records: RDD[String], instantTime: String) = {
+    client.insert(records, instantTime)
   }
 
-  def createNeuronConfig(basePath: String, tblName: String, parameters: Map[String, String]): NeuronWriteConfig = {
+  def createNeuronConfig(basePath: String, parameters: Map[String, String]): NeuronWriteConfig = {
     null
   }
 }

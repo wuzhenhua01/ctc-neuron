@@ -5,10 +5,10 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.asiainfo.ctc.data</groupId>
-        <artifactId>ctc-neuron</artifactId>
+        <artifactId>neuron-client</artifactId>
         <version>1.0.0</version>
     </parent>
-    <artifactId>neuron-spark-datasource</artifactId>
+    <artifactId>neuron-spark-client</artifactId>
 
     <dependencies>
         <!-- Spark -->
@@ -24,12 +24,7 @@
         <!-- Neuron -->
         <dependency>
             <groupId>com.asiainfo.ctc.data</groupId>
-            <artifactId>neuron-spark-client</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.asiainfo.ctc.data</groupId>
-            <artifactId>neuron-common</artifactId>
+            <artifactId>neuron-client-common</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>
