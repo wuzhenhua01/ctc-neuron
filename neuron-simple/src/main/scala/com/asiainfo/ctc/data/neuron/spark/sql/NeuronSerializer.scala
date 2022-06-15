@@ -60,7 +60,7 @@ class NeuronSerializer(rootCatalystType: DataType, nullable: Boolean) {
   }
 
   private def newStructConverter(catalystStruct: StructType): InternalRow => List[Any] = {
-    val fieldConverters = catalystStruct.map(f1 => newConverter(f1.dataType))
+    val fieldConverters = catalystStruct.map(_.dataType).map(newConverter)
     val numFields = catalystStruct.length
     (row: InternalRow) =>
       val result = new ListBuffer[Any]()

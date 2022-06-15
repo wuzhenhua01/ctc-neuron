@@ -18,7 +18,7 @@ object TestDataSource {
       .enableHiveSupport()
       .getOrCreate()
 
-    spark.sql("select *from ods_tp.bwt_prd_inst_income_202204").toDF().write.format("neuron").option("table", "ccc").save("tmp/wuzh")
+    spark.sql("select *from ods_tp.bwt_prd_inst_income_202204").toDF().coalesce(1).write.format("neuron").option("table", "ccc").save("tmp/wuzh")
     spark.stop()
   }
 }

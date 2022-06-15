@@ -1,7 +1,6 @@
 package com.asiainfo.ctc.data.neuron
 
 import java.io.IOException
-import java.util.concurrent.atomic.AtomicLong
 
 import com.asiainfo.ctc.data.neuron.util.FileIOUtils
 import org.apache.hadoop.conf.Configuration
@@ -17,13 +16,11 @@ import scala.collection.mutable.ListBuffer
  * @version 1.0.0
  * @since 2022-06-09
  */
-class BucketWriter(filePath: String, fileName: String, retry: Int = 0, batch: String = "001", fileSuffix: String = "gz", rollSize: Long) {
+class BucketWriter(filePath: String, filePrefix: String, retry: Int = 0, batch: String = "001", fileId: Int, fileSuffix: String = "gz") {
   private lazy val LOG: Logger = LoggerFactory.getLogger(classOf[BucketWriter])
+
   val conf = new Configuration
   conf.setBoolean("fs.automatic.close", false)
-  conf.setInt("dfs.replication.min", 1)
-
-  var fileExtensionCounter = new AtomicLong(1)
 
   var dataFileName: String = _
   var valFileName: String = _
@@ -38,18 +35,10 @@ class BucketWriter(filePath: String, fileName: String, retry: Int = 0, batch: St
   def append(record: Array[Byte]): Unit = {
     if (!isOpen) open()
 
-    if (shouldRotate) {
-      close()
-      open()
-    }
-
     cmpOut.write(record)
-    cmpOut.write('\r')
-    cmpOut.write('\n')
 
     recordCounter += 1
     processSize += record.length
-    processSize += 2
 
     if (recordCounter % 1000000 == 0) {
       LOG.info("write {} records in {}", recordCounter, dataFileName)
@@ -58,26 +47,11 @@ class BucketWriter(filePath: String, fileName: String, retry: Int = 0, batch: St
     }
   }
 
-  def shouldRotate: Boolean = {
-    var doRotate = false
-    if ((rollSize > 0) && (rollSize <= processSize)) {
-      LOG.debug("rolling: rollSize: {}, bytes: {}", rollSize, processSize)
-      doRotate = true
-    }
-    doRotate
-  }
-
-  def resetCounters(): Unit = {
-    recordCounter = 0
-    processSize = 0
-  }
-
   def open(): Unit = {
     if (filePath == null) throw new IOException("Invalid file settings")
 
-    val counter = fileExtensionCounter.getAndIncrement()
-    dataFileName = f"""$fileName.$retry%02d.$batch.$counter%03d.841.DATA.$fileSuffix"""
-    valFileName = f"""$fileName.$retry%02d.$batch.$counter%03d.841.VAL"""
+    dataFileName = f"$filePrefix.$retry%02d.$batch.$fileId%03d.841.DATA.$fileSuffix"
+    valFileName = f"$filePrefix.$retry%02d.$batch.$fileId%03d.841.VAL"
 
     val dstPath = new Path(filePath, dataFileName)
     val fs = dstPath.getFileSystem(conf)
@@ -85,20 +59,21 @@ class BucketWriter(filePath: String, fileName: String, retry: Int = 0, batch: St
       fs.append(dstPath)
     } else fs.create(dstPath)
 
-    val codec = getCodec("gzip")
+    val codec = getCodec()
     codec.asInstanceOf[DefaultCodec].setConf(conf)
     val compressor = CodecPool.getCompressor(codec, conf)
     cmpOut = codec.createOutputStream(fsOut, compressor)
 
-    resetCounters()
     isOpen = true
   }
 
   def close(): Unit = {
-    cmpOut.close()
-    fsOut.close()
-
-    createValFile()
+    if (isOpen) {
+      cmpOut.close()
+      fsOut.close()
+      isOpen = false
+      createValFile()
+    }
   }
 
   private def createValFile(): Unit = {
@@ -118,7 +93,7 @@ class BucketWriter(filePath: String, fileName: String, retry: Int = 0, batch: St
     false
   }
 
-  private def getCodec(codecName: String): CompressionCodec = {
+  private def getCodec(codecName: String = "gzip"): CompressionCodec = {
     val conf = new Configuration
     val codecs = CompressionCodecFactory.getCodecClasses(conf)
     // Wish we could base this on DefaultCodec but appears not all codec's
@@ -131,7 +106,7 @@ class BucketWriter(filePath: String, fileName: String, retry: Int = 0, batch: St
         codec = cls.newInstance()
       }
     }
-    if (codec == null) if (!codecName.equalsIgnoreCase("None"))
+    if (codec == null && !codecName.equalsIgnoreCase("None"))
       throw new IllegalArgumentException("Unsupported compression codec " + codecName + ".  Please choose from: " + codecStrs)
     codec
   }

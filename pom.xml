@@ -36,14 +36,14 @@
         <hive.exec.classifier>core</hive.exec.classifier>
         <log4j.version>1.2.17</log4j.version>
         <slf4j.version>1.7.25</slf4j.version>
-        <spark.version>${spark2.version}</spark.version>
+        <spark.version>${spark3.version}</spark.version>
         <spark2.version>2.3.0</spark2.version>
-        <spark3.version>3.0.0</spark3.version>
+        <spark3.version>3.1.1</spark3.version>
 
         <scala11.version>2.11.12</scala11.version>
         <scala12.version>2.12.10</scala12.version>
-        <scala.version>${scala11.version}</scala.version>
-        <scala.binary.version>2.11</scala.binary.version>
+        <scala.version>${scala12.version}</scala.version>
+        <scala.binary.version>2.12</scala.binary.version>
 
         <spark.scope>${compile.scope}</spark.scope>
     </properties>

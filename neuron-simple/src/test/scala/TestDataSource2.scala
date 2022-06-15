@@ -1,6 +1,9 @@
+import java.util.concurrent.locks.LockSupport
+
 import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
+import org.slf4j.{Logger, LoggerFactory}
 
 /**
  * @author wuzh8@asiainfo.com
@@ -8,6 +11,7 @@ import org.apache.spark.sql._
  * @since 2022-06-04
  */
 object TestDataSource2 {
+  val Log: Logger = LoggerFactory.getLogger(getClass)
   def main(args: Array[String]): Unit = {
     val conf = new SparkConf()
       .setMaster("local[2]")
@@ -16,16 +20,12 @@ object TestDataSource2 {
 
     val spark = SparkSession.builder
       .config(conf)
-      // .enableHiveSupport()
       .getOrCreate()
+    import spark.implicits._
 
     val rdd: RDD[(Int, String)] = spark.sparkContext.makeRDD(List((1, "zhangsan"), (2, "lisi"), (3, "zhangsan"), (4, "zhangsan"), (2, "zhangsan")))
-    rdd.groupByKey()
-      .foreachPartition {
-        case a: (Int, Iterable[String]) =>
-
-      }
-
+    rdd.toDF("id", "name").createTempView("user")
+    spark.sql("select *from user").toDF().coalesce(1).write.format("neuron").option("table", "ccc").save("tmp/wuzh")
     spark.stop()
   }
 }

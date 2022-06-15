@@ -27,7 +27,7 @@ class DefaultSource extends CreatableRelationProvider with DataSourceRegister {
   override def createRelation(sqlContext: SQLContext, mode: SaveMode, parameters: Map[String, String], df: DataFrame): BaseRelation = {
     val dfWithoutMetaCols = df.drop(NeuronRecord.NEURON_META_COLUMNS: _*)
 
-    NeuronSparkSqlWriter.write(sqlContext, mode, parameters, dfWithoutMetaCols)
+    NeuronSparkSqlWriter.write(sqlContext, parameters, dfWithoutMetaCols)
     new NeuronEmptyRelation(sqlContext, dfWithoutMetaCols.schema)
   }
 }
