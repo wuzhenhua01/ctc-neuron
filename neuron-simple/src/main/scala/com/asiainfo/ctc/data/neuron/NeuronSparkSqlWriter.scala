@@ -20,6 +20,7 @@ object NeuronSparkSqlWriter {
 
     val path = optParams("path")
     val tableName = optParams("table")
+    val basePath = path + "/" + tableName
     val conf = sqlContext.sparkContext.hadoopConfiguration
     // 重传号
     val retry = 0
@@ -42,16 +43,21 @@ object NeuronSparkSqlWriter {
       .collect()
       .toMap
 
-    val fileIdMap = (Map[Int, IndexedSeq[Long]](-1 -> IndexedSeq(0)) /: partitionSizeMap.mapValues(size => size / maxProcessSize)) ((x1, x2) => {
+    val fileIdMap = (Map[Int, IndexedSeq[Long]](-1 -> IndexedSeq(0)) /: partitionSizeMap.mapValues(size => size / maxProcessSize).toSeq.sortWith(_._1 < _._1)) ((x1, x2) => {
       val latestId = x1.getOrElse(x2._1 - 1, IndexedSeq(0L)).max
       val fields = for (incr <- 1L to x2._2) yield latestId + incr
       x1 + ((x2._1, fields))
     })
 
+    val maxFileId = fileIdMap.filter(_._2 nonEmpty).max(Ordering.by[(Int, IndexedSeq[Long]), Int](_._1))._2.max.toInt + 1
+
     val broadcastPartitionSizeMap = sqlContext.sparkContext.broadcast(partitionSizeMap)
     val broadcastFileIdMap = sqlContext.sparkContext.broadcast(fileIdMap)
-    println(partitionSizeMap)
-    println(fileIdMap)
+    val broadcastMaxFileId = sqlContext.sparkContext.broadcast(maxFileId)
+
+    LOG.info("{}", partitionSizeMap)
+    LOG.info("{}", fileIdMap)
+    LOG.info("{}", maxFileId)
 
     neuronAllIncomingRecords.mapPartitionsWithIndex((idx, itr) => {
       val size = broadcastPartitionSizeMap.value(idx)
@@ -63,32 +69,32 @@ object NeuronSparkSqlWriter {
         var writer = new BucketWriter(path, tableName, retry, fileId = fileIds(fileIdIdx).toInt)
         val remain = itr.filter {
           record: Array[Byte] =>
-            if (!fileIds.isDefinedAt(fileIdIdx)) true
+            if (!fileIds.isDefinedAt(fileIdIdx) || ((processSize > maxProcessSize) && !fileIds.isDefinedAt(fileIdIdx + 1))) true
             else {
               if (processSize > maxProcessSize) {
                 fileIdIdx += 1
                 processSize = 0
                 writer.close()
-                writer = new BucketWriter(path, tableName, retry, fileId = fileIds(fileIdIdx).toInt)
+                writer = new BucketWriter(basePath, tableName, retry, fileId = fileIds(fileIdIdx).toInt)
               }
               writer.append(record)
               processSize += record.length
               false
             }
-        }
+        }.toList
         writer.close()
-        remain
+        remain.iterator
       }
     }).coalesce(1, shuffle = true).foreachPartition(recordItr => {
       var processSize = 0L
-      var fileId = broadcastFileIdMap.value.filter(_._2 nonEmpty).max(Ordering.by[(Int, IndexedSeq[Long]), Int](_._1))._2.max.toInt + 1
-      var writer = new BucketWriter(path, tableName, retry, fileId = fileId)
+      var fileId = broadcastMaxFileId.value
+      var writer = new BucketWriter(basePath, tableName, retry, fileId = fileId)
       recordItr.foreach(record => {
         if (processSize > maxProcessSize) {
           fileId += 1
           processSize = 0
           writer.close()
-          writer = new BucketWriter(path, tableName, retry, fileId = fileId)
+          writer = new BucketWriter(basePath, tableName, retry, fileId = fileId)
         }
         writer.append(record)
         processSize += record.length
@@ -97,7 +103,7 @@ object NeuronSparkSqlWriter {
     })
 
     LOG.info("Creating check file for {}", tableName)
-    val checkPath = new Path(path, f"$tableName.$retry%02d.000.000.841.CHECK")
+    val checkPath = new Path(basePath, f"$tableName.$retry%02d.000.000.841.CHECK")
     val fs = checkPath.getFileSystem(conf)
     FileIOUtils.createFileInPath(fs, checkPath, s"$tableName\r\n".getBytes())
   }

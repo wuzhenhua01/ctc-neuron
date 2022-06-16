@@ -35,6 +35,7 @@
         <hive.version>3.1.0</hive.version>
         <hive.exec.classifier>core</hive.exec.classifier>
         <log4j.version>1.2.17</log4j.version>
+        <mysql.java.version>5.1.47</mysql.java.version>
         <slf4j.version>1.7.25</slf4j.version>
         <spark.version>${spark3.version}</spark.version>
         <spark2.version>2.3.0</spark2.version>
@@ -109,6 +110,12 @@
                 <artifactId>spark-hive_${scala.binary.version}</artifactId>
                 <version>${spark.version}</version>
                 <scope>${spark.scope}</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <version>${mysql.java.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

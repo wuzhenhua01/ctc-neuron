@@ -16,7 +16,7 @@ import scala.collection.mutable.ListBuffer
  * @version 1.0.0
  * @since 2022-06-09
  */
-class BucketWriter(filePath: String, filePrefix: String, retry: Int = 0, batch: String = "001", fileId: Int, fileSuffix: String = "gz") {
+class BucketWriter(filePath: String, filePrefix: String, retry: Int = 0, batch: String = "001", fileId: Int, provId: Int = 841) {
   private lazy val LOG: Logger = LoggerFactory.getLogger(classOf[BucketWriter])
 
   val conf = new Configuration
@@ -50,8 +50,8 @@ class BucketWriter(filePath: String, filePrefix: String, retry: Int = 0, batch: 
   def open(): Unit = {
     if (filePath == null) throw new IOException("Invalid file settings")
 
-    dataFileName = f"$filePrefix.$retry%02d.$batch.$fileId%03d.841.DATA.$fileSuffix"
-    valFileName = f"$filePrefix.$retry%02d.$batch.$fileId%03d.841.VAL"
+    dataFileName = f"$filePrefix.$retry%02d.$batch.$fileId%03d.$provId.DATA.gz"
+    valFileName = f"$filePrefix.$retry%02d.$batch.$fileId%03d.$provId.VAL"
 
     val dstPath = new Path(filePath, dataFileName)
     val fs = dstPath.getFileSystem(conf)
