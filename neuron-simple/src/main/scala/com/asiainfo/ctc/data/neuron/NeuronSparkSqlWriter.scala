@@ -1,7 +1,7 @@
 package com.asiainfo.ctc.data.neuron
 
-import java.time.{LocalDate, LocalDateTime}
 import java.time.format.DateTimeFormatter
+import java.time.{LocalDate, LocalDateTime}
 
 import com.asiainfo.ctc.data.neuron.model.{NeuronLog, NeuronLogDetail}
 import com.asiainfo.ctc.data.neuron.util.{DataSourceUtils, FileIOUtils, NeuronSparkUtils}
@@ -81,7 +81,7 @@ object NeuronSparkSqlWriter {
     val accumulatorRecordNum = sqlContext.sparkContext.longAccumulator("记录条数")
     val accumulatorRecordSize = sqlContext.sparkContext.longAccumulator("记录大小")
     val accumulatorFiles = sqlContext.sparkContext.collectionAccumulator[String]("文件集合")
-    val collectFileName = (dataFileName:String) => {
+    val collectFileName = (dataFileName: String) => {
       accumulatorFiles.add(dataFileName)
     }
 
@@ -158,9 +158,9 @@ object NeuronSparkSqlWriter {
     neuronLog.end_time = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(LocalDateTime.now()).replace('T', ' ')
     neuronLog.data_row_count = recordNum
     neuronLog.data_file_num = recordSize match {
-      case recordSize if recordSize > (1 << 30) => (recordSize >> 30) + "GB"
-      case recordSize if recordSize < (1 << 20) => (recordSize >> 10) + "B"
-      case recordSize => (recordSize >> 20) + "KB"
+      case r if r > (1 << 30) => (recordSize >> 30) + "GB"
+      case r if r < (1 << 20) => (recordSize >> 10) + "B"
+      case r => (r >> 20) + "KB"
     }
     neuronLog.check_file_name = checkPath.getName
     neuronLog.check_file_num = checkFilePayload.length + "B"
