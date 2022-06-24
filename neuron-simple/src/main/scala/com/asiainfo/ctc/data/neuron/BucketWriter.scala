@@ -8,7 +8,7 @@ import org.apache.hadoop.fs.{FSDataOutputStream, Path}
 import org.apache.hadoop.io.compress._
 import org.slf4j.{Logger, LoggerFactory}
 
-import scala.collection.JavaConversions._
+import scala.collection.convert.ImplicitConversions._
 import scala.collection.mutable.ListBuffer
 
 /**
