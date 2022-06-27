@@ -67,13 +67,13 @@ object NeuronSparkSqlWriter {
 
     LOG.info("开始计算分区文件id...")
     val fileIdMap = (Map[Int, IndexedSeq[Long]](-1 -> IndexedSeq(0)) /: partitionSizeMap.mapValues(size => size / maxProcessSize).toSeq.sortWith(_._1 < _._1)) ((x1, x2) => {
-      val latestId = x1.getOrElse(x2._1 - 1, IndexedSeq(0L)).max
+      val latestId = x1.get(x2._1 - 1).filter(_.nonEmpty).getOrElse(IndexedSeq(0L)).max
       val fields = for (incr <- 1L to x2._2) yield latestId + incr
       x1 + ((x2._1, fields))
     })
     LOG.info("{}.", fileIdMap)
 
-    val maxFileId = fileIdMap.filter(_._2 nonEmpty).max(Ordering.by[(Int, IndexedSeq[Long]), Int](_._1))._2.max.toInt + 1
+    val maxFileId = fileIdMap.filter(_._2.nonEmpty).max(Ordering.by[(Int, IndexedSeq[Long]), Int](_._1))._2.max.toInt + 1
 
     val broadcastPartitionSizeMap = sqlContext.sparkContext.broadcast(partitionSizeMap)
     val broadcastFileIdMap = sqlContext.sparkContext.broadcast(fileIdMap)
