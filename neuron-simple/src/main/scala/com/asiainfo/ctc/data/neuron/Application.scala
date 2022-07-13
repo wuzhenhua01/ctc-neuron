@@ -2,7 +2,8 @@ package com.asiainfo.ctc.data.neuron
 
 import com.asiainfo.ctc.data.neuron.config.SerDeConfig
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{Dataset, SparkSession}
+import org.apache.spark.sql.catalyst.analysis.UnresolvedRelation
 import org.slf4j.LoggerFactory
 
 /**
@@ -85,5 +86,21 @@ object Application {
 
     ss.stop()
     LOG.info(s"宽表[$tableId:$date]文件生成结束.")
+
+    LOG.info("开始校验文件记录数...")
+    val table = ss.sessionState.sqlParser
+      .parsePlan(payload)
+      .collectFirst {
+        case r: UnresolvedRelation => r.tableName
+      }.get
+    val srcCount = ss.sql(s"SELECT count(1) FROM ${table}").first().getLong(0)
+    LOG.info("原始表记录数:{}", srcCount)
+
+    ss.read
+      .option("pathGlobFilter", "*.gz")
+      .text(location)
+      .createTempView("payload")
+    val targetCount = ss.sql("SELECT count(1) FROM payload").first().getLong(0)
+    LOG.info("写入记录数:{}", targetCount)
   }
 }

@@ -14,6 +14,7 @@
         <module>neuron-client</module>
         <module>neuron-spark-datasource</module>
         <module>neuron-simple</module>
+        <module>neuron-mover</module>
     </modules>
 
     <properties>
@@ -75,6 +76,7 @@
                 <version>${hive.version}</version>
             </dependency>
 
+            <!-- Hadoop -->
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-client</artifactId>
@@ -90,6 +92,12 @@
                         <artifactId>jaxb-api</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.hadoop</groupId>
+                <artifactId>hadoop-distcp</artifactId>
+                <version>${hadoop.version}</version>
             </dependency>
 
             <!-- Spark -->

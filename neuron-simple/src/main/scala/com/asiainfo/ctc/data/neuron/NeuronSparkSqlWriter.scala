@@ -1,7 +1,7 @@
 package com.asiainfo.ctc.data.neuron
 
 import java.time.format.DateTimeFormatter
-import java.time.{LocalDate, LocalDateTime}
+import java.time.{Instant, LocalDate, LocalDateTime}
 
 import com.asiainfo.ctc.data.neuron.model.{NeuronLog, NeuronLogDetail}
 import com.asiainfo.ctc.data.neuron.util.{DataSourceUtils, FileIOUtils, NeuronSparkUtils}
@@ -34,10 +34,12 @@ object NeuronSparkSqlWriter {
     val fs = basePath.getFileSystem(sparkContext.hadoopConfiguration)
     val retry = optParams("retry").toInt
 
+    val startTime = LocalDateTime.now()
     val neuronLog = NeuronLog(interface_name = tableName,
       data_date = date,
       serial_num = 1.toString,
       repeat_no = f"$retry%02d",
+      begin_time = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(startTime).replace('T', ' '),
       local_path = path)
     val neuronLogUUID = neuronLog.uuid
 
@@ -50,7 +52,7 @@ object NeuronSparkSqlWriter {
 
     val neuronAllIncomingRecords = record
       .map(r => DataSourceUtils.createNeuronRecord(r, "\t"))
-      .map(line => line + "\r\n")
+      .map(_ + "\r\n")
       .map(_.getBytes("GBK"))
       .cache()
 
@@ -63,7 +65,7 @@ object NeuronSparkSqlWriter {
       })
       .collect()
       .toMap
-    LOG.info("{}.", partitionSizeMap)
+    LOG.info("partitionSizeMap: {}.", partitionSizeMap)
 
     LOG.info("开始计算分区文件id...")
     val fileIdMap = (Map[Int, IndexedSeq[Long]](-1 -> IndexedSeq(0)) /: partitionSizeMap.mapValues(size => size / maxProcessSize).toSeq.sortWith(_._1 < _._1)) ((x1, x2) => {
@@ -71,7 +73,7 @@ object NeuronSparkSqlWriter {
       val fields = for (incr <- 1L to x2._2) yield latestId + incr
       x1 + ((x2._1, fields))
     })
-    LOG.info("{}.", fileIdMap)
+    LOG.info("fileIdMap: {}.", fileIdMap)
 
     val maxFileId = fileIdMap.filter(_._2.nonEmpty).max(Ordering.by[(Int, IndexedSeq[Long]), Int](_._1))._2.max.toInt + 1
 
@@ -85,8 +87,15 @@ object NeuronSparkSqlWriter {
       accumulatorFiles.add(dataFileName)
     }
 
-    val createDate = DateTimeFormatter.BASIC_ISO_DATE.format(LocalDate.now())
+    val createDate = DateTimeFormatter.BASIC_ISO_DATE.format(LocalDateTime.now())
     LOG.info("开始生成文件...")
+
+    if (neuronAllIncomingRecords.isEmpty()) {
+      val writer = new BucketWriter(path, tableName, createDate, date, retry, callback = collectFileName)
+      writer.createEmpty()
+      writer.close()
+    }
+
     neuronAllIncomingRecords.mapPartitionsWithIndex((idx, itr) => {
       val size = broadcastPartitionSizeMap.value(idx)
       val fileIds = broadcastFileIdMap.value(idx)
@@ -155,7 +164,8 @@ object NeuronSparkSqlWriter {
       .mode(SaveMode.Append)
       .save()
 
-    neuronLog.end_time = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(LocalDateTime.now()).replace('T', ' ')
+    val endTime = LocalDateTime.now()
+    neuronLog.end_time = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(endTime).replace('T', ' ')
     neuronLog.data_row_count = recordNum
     neuronLog.data_file_num = recordSize match {
       case r if r > (1 << 30) => (recordSize >> 30) + "GB"

@@ -16,7 +16,7 @@ import scala.collection.mutable.ListBuffer
  * @version 1.0.0
  * @since 2022-06-09
  */
-class BucketWriter(filePath: String, filePrefix: String, createDate: String, date: String, retry: Int = 0, batch: String = "001", fileId: Int, provId: Int = 841, callback: String => Unit) {
+class BucketWriter(filePath: String, filePrefix: String, createDate: String, date: String, retry: Int = 0, batch: String = "001", fileId: Int = 1, provId: Int = 841, callback: String => Unit) {
   private lazy val LOG: Logger = LoggerFactory.getLogger(classOf[BucketWriter])
 
   val conf = new Configuration
@@ -31,6 +31,10 @@ class BucketWriter(filePath: String, filePrefix: String, createDate: String, dat
   var processSize = 0L
 
   var isOpen = false
+
+  def createEmpty(): Unit = {
+    open()
+  }
 
   def append(record: Array[Byte]): Unit = {
     if (!isOpen) open()

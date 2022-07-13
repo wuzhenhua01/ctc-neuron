@@ -25,7 +25,12 @@ object TestDataSource2 {
 
     val rdd: RDD[(Int, String)] = spark.sparkContext.makeRDD(List((1, "zhangsan"), (2, "lisi"), (3, "zhangsan"), (4, "zhangsan"), (2, "zhangsan")))
     rdd.toDF("id", "name").createTempView("user")
-    spark.sql("select *from user").toDF().coalesce(1).write.format("neuron").option("table", "ccc").save("tmp/wuzh")
+    spark.sql("select *from user where 1 = 2").toDF().coalesce(1).write.format("neuron")
+      .option("date", "20220713")
+      .option("retry", "00")
+      .option("table", "ccc")
+      .mode(SaveMode.Overwrite)
+      .save("tmp/wuzh")
     spark.stop()
   }
 }
