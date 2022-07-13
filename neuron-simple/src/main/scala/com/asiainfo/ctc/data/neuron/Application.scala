@@ -84,7 +84,6 @@ object Application {
       .mode(mode)
       .save(location)
 
-    ss.stop()
     LOG.info(s"宽表[$tableId:$date]文件生成结束.")
 
     LOG.info("开始校验文件记录数...")
@@ -102,5 +101,7 @@ object Application {
       .createTempView("payload")
     val targetCount = ss.sql("SELECT count(1) FROM payload").first().getLong(0)
     LOG.info("写入记录数:{}", targetCount)
+
+    ss.stop()
   }
 }
