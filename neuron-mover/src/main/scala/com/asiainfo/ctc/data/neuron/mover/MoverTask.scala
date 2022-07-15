@@ -11,17 +11,16 @@ object MoverTask {
   @transient private lazy val LOG = LoggerFactory.getLogger(getClass)
 
   def main(args: Array[String]): Unit = {
-    if (args.length < 2) {
-      LOG.error("Usage: class <table-id> <date>")
+    if (args.length < 1) {
+      LOG.error("Usage: class <table-id>")
       sys.exit(-1)
     }
 
     val tableId = args(0)
-    val date = args(1)
 
     Class.forName("com.mysql.jdbc.Driver")
     val conn = DriverManager.getConnection("jdbc:mysql://137.32.181.208:8922/dataos_alarm?useSSL=false", "dataos", "Dedv_0106sOasR")
-    val ptmt = conn.prepareStatement("SELECT t.location, f.hostname, f.port, f.username, f.passowrd, f.location as ftp_location FROM tr_bwt_serde_config t LEFT JOIN tr_bwt_ftp_config f ON t.ftp_id = f.id AND t.id = ?", 1)
+    val ptmt = conn.prepareStatement("SELECT t.location, f.hostname, f.port, f.username, f.password, f.location as ftp_location FROM tr_bwt_serde_config t LEFT JOIN tr_bwt_ftp_config f ON t.ftp_id = f.id AND t.id = ?", 1)
     ptmt.setString(1, tableId)
     val rs = ptmt.executeQuery()
     if (!rs.next()) {
@@ -39,16 +38,26 @@ object MoverTask {
     val path = new Path(location)
     val fs = path.getFileSystem(conf)
     fs.listStatus(path, new GlobFilter("*.DATA.gz")).map(_.getPath).map(src => (src, s"""${ftpUri}/${src.getName}""")).foreach {
-      case (srcPath, target) => move(fs, srcPath, target)
+      case (srcPath, target) => move(conf, srcPath, target)
     }
     fs.listStatus(path, new GlobFilter("*.VAL")).map(_.getPath).map(src => (src, s"""${ftpUri}/${src.getName}""")).foreach {
-      case (srcPath, target) => move(fs, srcPath, target)
+      case (srcPath, target) => move(conf, srcPath, target)
     }
     fs.listStatus(path, new GlobFilter("*.CHECK")).map(_.getPath).map(src => (src, s"""${ftpUri}/${src.getName}""")).foreach {
-      case (srcPath, target) => move(fs, srcPath, target)
+      case (srcPath, target) => move(conf, srcPath, target)
     }
+    LOG.info("cp finish.")
   }
-  def move(fs: FileSystem, src: Path, target: String): Unit = {
+  def move(conf: Configuration, src: Path, target: String): Unit = {
+    LOG.info(s"${src.getName} -> ${target}")
+    val srcFs = src.getFileSystem(conf)
+    val hdfsDataInputStream = srcFs.open(src)
+
     val targetPath = new Path(target)
+    val targetFs = targetPath.getFileSystem(conf)
+    val ftpDataOutputStream = targetFs.create(targetPath, true)
+
+    IOUtils.copyBytes(hdfsDataInputStream, ftpDataOutputStream, 4096)
+    IOUtils.cleanupWithLogger(LOG, hdfsDataInputStream, ftpDataOutputStream)
   }
 }
