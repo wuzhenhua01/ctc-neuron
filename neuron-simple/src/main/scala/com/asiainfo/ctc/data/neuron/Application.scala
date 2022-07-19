@@ -2,8 +2,8 @@ package com.asiainfo.ctc.data.neuron
 
 import com.asiainfo.ctc.data.neuron.config.SerDeConfig
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.{Dataset, SparkSession}
 import org.apache.spark.sql.catalyst.analysis.UnresolvedRelation
+import org.apache.spark.sql.{SaveMode, SparkSession}
 import org.slf4j.LoggerFactory
 
 /**
@@ -102,6 +102,22 @@ object Application {
     val targetCount = ss.sql("SELECT count(1) FROM payload").first().getLong(0)
     LOG.info("写入记录数:{}", targetCount)
 
+    val rdd = ss.sparkContext.makeRDD(Seq((tableName, date, 1, retrySrc, srcCount, targetCount)))
+    rdd.toDF().write
+      .format("jdbc")
+      .option("driver", "com.mysql.jdbc.Driver")
+      .option("url", "jdbc:mysql://137.32.181.208:8922/dataos_pro?useSSL=false")
+      .option("user", "dataos")
+      .option("password", "Dedv_0106sOasR")
+      .option("dbtable", "dp_group_check")
+      .mode(SaveMode.Append)
+      .save()
+
     ss.stop()
+
+    if (srcCount != targetCount) {
+      LOG.error(s"生成数据量比对不一致, 表记录数:$srcCount -> 生成记录数:$targetCount")
+      sys.exit(-1)
+    }
   }
 }
